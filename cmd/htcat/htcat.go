@@ -2,7 +2,7 @@ package main
 
 import (
 	"crypto/tls"
-	"htcat"
+	"github.com/htcat/htcat"
 	"log"
 	"net/http"
 	"net/url"
