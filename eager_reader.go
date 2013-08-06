@@ -7,7 +7,7 @@ import (
 
 type eagerReader struct {
 	closeNotify chan struct{}
-	io.ReadCloser
+	rc          io.ReadCloser
 
 	bufMu sync.Mutex
 	buf   []byte
@@ -21,7 +21,7 @@ type eagerReader struct {
 func newEagerReader(r io.ReadCloser, bufSz int64) *eagerReader {
 	er := eagerReader{
 		closeNotify: make(chan struct{}),
-		ReadCloser:  r,
+		rc:          r,
 		buf:         make([]byte, bufSz, bufSz),
 	}
 
@@ -37,7 +37,7 @@ func (er *eagerReader) buffer() {
 		var n int
 
 		er.bufMu.Lock()
-		n, er.lastErr = er.ReadCloser.Read(er.buf[er.end:])
+		n, er.lastErr = er.rc.Read(er.buf[er.end:])
 		er.end += n
 
 		if er.lastErr != nil {
@@ -51,9 +51,13 @@ func (er *eagerReader) buffer() {
 	}
 }
 
-func (er *eagerReader) Read(p []byte) (int, error) {
+func (er *eagerReader) writeOnce(dst io.Writer) (int64, error) {
 	er.bufMu.Lock()
 	defer er.bufMu.Unlock()
+
+	if er.begin == er.end && er.end == len(er.buf) {
+		return 0, er.lastErr
+	}
 
 	// Empty buffer without error: wait for another read
 	// to show up.
@@ -61,25 +65,38 @@ func (er *eagerReader) Read(p []byte) (int, error) {
 		er.more.Wait()
 	}
 
-	// More buffer than requested read: no need to report
-	// errors yet.
-	if er.end-er.begin > len(p) {
-		copy(p, er.buf[er.begin:er.begin+len(p)])
-		er.begin += len(p)
-		return len(p), nil
-	}
+	n, err := dst.Write(er.buf[er.begin:er.end])
+	er.begin += n
+	return int64(n), err
+}
+func (er *eagerReader) WriteTo(dst io.Writer) (int64, error) {
+	var written int64
 
-	// More read than data buffered: return err that
-	// terminated the stream along with any trailing
-	// bytes.
-	copy(p, er.buf[er.begin:er.end])
-	n := er.end - er.begin
-	er.begin = er.end
-	return n, er.lastErr
+	for {
+		n, err := er.writeOnce(dst)
+		written += n
+		switch err {
+		case io.EOF:
+			// Finished.
+			//
+			// The EOF originates from the Read half of
+			// the eagerReader, and it's not desirable
+			// emit that to the caller of WriteTo: it's
+			// assumed that a nil error and a return means
+			// that all bytes have been written.
+			return 0, nil
+		case nil:
+			// More bytes to be written still.
+			continue
+		default:
+			// Error encountered, stop execution.
+			return written, err
+		}
+	}
 }
 
 func (er *eagerReader) Close() error {
-	err := er.ReadCloser.Close()
+	err := er.rc.Close()
 	er.closeNotify <- struct{}{}
 	return err
 }

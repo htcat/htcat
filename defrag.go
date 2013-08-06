@@ -5,9 +5,14 @@ import (
 	"sync/atomic"
 )
 
+type writerToCloser interface {
+	io.WriterTo
+	io.Closer
+}
+
 type fragment struct {
 	ord      int64
-	contents io.ReadCloser
+	contents writerToCloser
 }
 
 // The Defragmenter is an implementer of the WriterTo interface that
@@ -163,11 +168,15 @@ func (d *defrag) register(frag *fragment) {
 func (d *defrag) writeConsecutive(dst io.Writer, start *fragment) (
 	int64, error) {
 	// Write out the explicitly passed fragment.
-	written, err := io.Copy(dst, start.contents)
-	defer start.contents.Close()
+	written, err := start.contents.WriteTo(dst)
 	if err != nil {
 		return int64(written), err
 	}
+
+	if err := start.contents.Close(); err != nil {
+		return int64(written), err
+	}
+
 	d.lastWritten += 1
 
 	// Write as many contiguous bytes as possible.
@@ -185,7 +194,7 @@ func (d *defrag) writeConsecutive(dst io.Writer, start *fragment) (
 		if frag, ok := d.future[next]; ok {
 			// Found a contiguous segment to write.
 			delete(d.future, next)
-			n, err := io.Copy(dst, frag.contents)
+			n, err := frag.contents.WriteTo(dst)
 			written += n
 			defer frag.contents.Close()
 			if err != nil {

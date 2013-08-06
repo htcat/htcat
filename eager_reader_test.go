@@ -1,6 +1,7 @@
 package htcat
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"testing"
@@ -18,15 +19,15 @@ func TestEagerReaderRead(t *testing.T) {
 		writer.Close()
 	}()
 
-	var buf []byte
+	var buf bytes.Buffer
 	go func() {
-		buf, _ = ioutil.ReadAll(er)
+		er.WriteTo(&buf)
 		done <- struct{}{}
 	}()
 
 	<-done
 
-	if string(buf) != "hello" {
+	if string(buf.Bytes()) != "hello" {
 		t.Fatal()
 	}
 }
