@@ -2,11 +2,11 @@ package htcat
 
 import "fmt"
 
-// Raised if an internal API
-type ErrAssertf struct {
+// Returned if an internal fidelity check fails.
+type errAssertf struct {
 	error
 }
 
-func AssertErrf(format string, a ...interface{}) ErrAssertf {
-	return ErrAssertf{fmt.Errorf(format, a...)}
+func assertErrf(format string, a ...interface{}) errAssertf {
+	return errAssertf{fmt.Errorf(format, a...)}
 }

@@ -44,11 +44,8 @@ func (cat *HtCat) nextFragment() *httpFrag {
 	if cat.httpFragGen.hasNext() {
 		f := cat.defrag.nextFragment()
 		hf = cat.httpFragGen.nextFragment(f)
-		if hf == nil {
-			cat.setLast(cat.defrag.LastAllocated())
-		}
 	} else {
-		cat.defrag.setLast(cat.defrag.LastAllocated())
+		cat.defrag.setLast(cat.defrag.lastAllocated())
 	}
 
 	return hf

@@ -15,7 +15,7 @@ type defrag struct {
 	lastWritten int64
 
 	// The next unallocated fragment ordinal.
-	lastAllocated int64
+	lastAlloc int64
 
 	// The last fragment ordinal to be written.
 	lastOrdinal       int64
@@ -53,8 +53,8 @@ func (d *defrag) initDefrag() {
 }
 
 func (d *defrag) nextFragment() *fragment {
-	atomic.AddInt64(&d.lastAllocated, 1)
-	f := fragment{ord: d.lastAllocated}
+	atomic.AddInt64(&d.lastAlloc, 1)
+	f := fragment{ord: d.lastAlloc}
 
 	return &f
 }
@@ -105,7 +105,7 @@ func (d *defrag) WriteTo(dst io.Writer) (written int64, err error) {
 			// store it for now.
 			d.future[frag.ord] = frag
 		} else {
-			return d.written, AssertErrf(
+			return d.written, assertErrf(
 				"Unexpected retrograde fragment %v, "+
 					"expected at least %v", frag.ord, next)
 		}
@@ -118,8 +118,8 @@ func (d *defrag) setLast(lastOrdinal int64) {
 	d.lastOrdinalNotify <- lastOrdinal
 }
 
-func (d *defrag) LastAllocated() int64 {
-	return atomic.LoadInt64(&d.lastAllocated)
+func (d *defrag) lastAllocated() int64 {
+	return atomic.LoadInt64(&d.lastAlloc)
 }
 
 func (d *defrag) register(frag *fragment) {
