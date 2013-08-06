@@ -87,17 +87,17 @@ func main() {
 	//
 	// Done this way to get good throughput with large files, but
 	// to also get parallel execution on small GETs as well.
-	paralleism := 5
+	parallelism := 5
 
 	var partSize int64
-	partSize = length / int64(paralleism)
+	partSize = length / int64(parallelism)
 
 	if partSize > 20*MB {
 		partSize = 20 * MB
 	}
 
 	// Begin the GET.
-	htc := htcat.New(client, u, paralleism, partSize, length)
+	htc := htcat.New(client, u, parallelism, partSize, length)
 
 	if _, err := htc.WriteTo(os.Stdout); err != nil {
 		log.Fatalf("aborting: could not write to output stream: %v",
