@@ -28,6 +28,33 @@ For correspondence of all sorts, write to <htcat@googlegroups.com>.
 Bugs can be filed at
 [htcat's Github Issues page](https://github.com/htcat/htcat/issues).
 
+## Approach ##
+
+`htcat` works by determining the size of the `Content-Length` of the
+URL passed, and then partitioning the work into a series of `GET`s
+that use the `Range` header in the request.
+
+Unlike most programs that do similar `Range`-based splitting, the
+requests that are performed in parallel are limited to some bytes
+ahead of the data emitted so far instead of splitting the entire byte
+stream evenly.  The purpose of this is to emit those bytes as soon as
+reasonably possible, so that pipelined execution of another tool can,
+too, proceed in parallel.
+
+These requests may complete slightly out of order, and are held in
+reserve until contiguous bytes can be emitted by a defragmentation
+routine, that catenates together the complete, consecutive payloads in
+memory for emission.
+
+Tweaking the number of simultaneous transfers and the size of each
+`GET` makes a trade-off between latency to fill the output pipeline,
+memory usage, and churn in requests and connections and incurring
+their associated start-up costs.
+
+If `htcat`'s peer on the server side processes `Range` requests more
+slowly than regular `GET` without a `Range` header, then, `htcat`'s
+performance can suffer relative to a simpler, single-stream `GET`.
+
 ## Numbers ##
 
 These are measurements falling well short of real benchmarks that are
