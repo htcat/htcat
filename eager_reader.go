@@ -69,6 +69,7 @@ func (er *eagerReader) writeOnce(dst io.Writer) (int64, error) {
 	er.begin += n
 	return int64(n), err
 }
+
 func (er *eagerReader) WriteTo(dst io.Writer) (int64, error) {
 	var written int64
 
