@@ -71,7 +71,6 @@ func (cat *HtCat) get() {
 
 		resp, err := cat.cl.Do(&req)
 		if err != nil {
-			resp.Body.Close()
 			cat.defrag.cancel(err)
 		}
 
