@@ -57,12 +57,12 @@ func main() {
 
 	// Run HEAD to determine the length of the payload.
 	resp, err := client.Head(os.Args[1])
-	resp.Body.Close()
 	if err != nil {
 		log.Fatalf("aborting: "+
 			"could not run HEAD to determine Content-Length: %v",
 			err)
 	}
+	resp.Body.Close()
 
 	rawLen := resp.Header.Get("Content-Length")
 	if rawLen == "" {
