@@ -32,7 +32,9 @@ Bugs can be filed at
 
 `htcat` works by determining the size of the `Content-Length` of the
 URL passed, and then partitioning the work into a series of `GET`s
-that use the `Range` header in the request.
+that use the `Range` header in the request, with the notable exception
+of the first issued `GET`, which has no `Range` header and is used to
+both start the transfer and attempt to determine the size of the URL.
 
 Unlike most programs that do similar `Range`-based splitting, the
 requests that are performed in parallel are limited to some bytes
@@ -84,15 +86,3 @@ off some seconds:
 | htcat      | yes | 7.25s    |
 | htcat      | yes | 2.90s    |
 | htcat      | yes | 2.88s    |
-
-On very small files, some of the start-up costs can overwhelm any
-benefit.  The following are from a ~800KB file on a CDN:
-
-| Tool       | TLS | Time     |
-|------------|-----|----------|
-| curl       | yes | 0.07s    |
-| curl       | yes | 0.05     |
-| curl       | yes | 0.05s    |
-| htcat      | yes | 0.16s    |
-| htcat      | yes | 0.16s    |
-| htcat      | yes | 0.16s    |
