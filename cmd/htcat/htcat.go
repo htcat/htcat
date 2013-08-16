@@ -59,7 +59,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// Begin the GET.
-	htc := htcat.New(&client, u, 5, 20*MB)
+	htc := htcat.New(&client, u, 5)
 
 	if _, err := htc.WriteTo(os.Stdout); err != nil {
 		log.Fatalf("aborting: could not write to output stream: %v",

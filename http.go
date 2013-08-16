@@ -127,15 +127,13 @@ func (cat *HtCat) startup(parallelism int) {
 
 }
 
-func New(client *http.Client, u *url.URL, parallelism int,
-	chunkSize int64) *HtCat {
+func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
 	cat := HtCat{
 		u:  u,
 		cl: client,
 	}
 
 	cat.initDefrag()
-	cat.targetFragSize = chunkSize
 	cat.startup(parallelism)
 
 	if cat.totalSize <= 0 {
