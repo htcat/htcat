@@ -10,7 +10,7 @@ type HtCat struct {
 	defrag
 
 	u     *url.URL
-	cl    http.Client
+	cl    *http.Client
 	tasks chan *httpFrag
 
 	// Protect httpFragGen with a Mutex.
@@ -18,10 +18,11 @@ type HtCat struct {
 	httpFragGen
 }
 
-func New(client http.Client,
+func New(client *http.Client,
 	u *url.URL, parallelism int, chunkSize, totalSize int64) *HtCat {
 	cat := HtCat{
-		u: u,
+		u:  u,
+		cl: client,
 	}
 
 	cat.initDefrag()
