@@ -74,15 +74,56 @@ sometimes very significant, especially at the higher speeds.
 |curl       | yes | 5 MB/s   |
 |aria2c -x5 | yes | 17 MB/s  |
 
-On small files (~10MB), the situation changes: `htcat` chooses smaller
-parts, as to still get some parallelism.  The result can still shave
-off some seconds:
+On somewhat small files, the situation changes: `htcat` chooses
+smaller parts, as to still get some parallelism.
+
+Below are results while performing a 13MB transfer from S3 (Seattle)
+to an EC2 instance in Virginia.  Notably, TLS being on or off did not
+seem to matter, perhaps in this case it was not a bottleneck.
+
+| Tool   | Time     |
+|--------|----------|
+| curl   | 5.20s    |
+| curl   | 7.75s    |
+| curl   | 6.36s    |
+| htcat  | 2.69s    |
+| htcat  | 2.50s    |
+| htcat  | 3.25s    |
+
+Results while performing a transfer of the same 13MB file from S3 to
+EC2, but all within Virginia:
 
 | Tool       | TLS | Time     |
 |------------|-----|----------|
-| curl       | yes | 5.20s    |
-| curl       | yes | 5.75s    |
-| curl       | yes | 12.77s   |
-| htcat      | yes | 7.25s    |
-| htcat      | yes | 2.90s    |
-| htcat      | yes | 2.88s    |
+| curl       | no  | 0.29s    |
+| curl       | no  | 0.75s    |
+| curl       | no  | 0.44s    |
+| htcat      | no  | 0.30s    |
+| htcat      | no  | 0.30s    |
+| htcat      | no  | 0.48s    |
+| curl       | yes | 2.69s    |
+| curl       | yes | 2.69s    |
+| curl       | yes | 2.62s    |
+| htcat      | yes | 1.37s    |
+| htcat      | yes | 0.45s    |
+| htcat      | yes | 0.59s    |
+
+Results while performing a 4.6MB transfer on a fast (same-region)
+link.  This file is small enough that `htcat` disables multi-request
+parallelism.  Given that, it's unclear why `htcat` performs markedly
+better on the TLS tests than `curl`.
+
+| Tool       | TLS | Time     |
+|------------|-----|----------|
+| curl       | no  | 0.14s    |
+| curl       | no  | 0.13s    |
+| curl       | no  | 0.14s    |
+| htcat      | no  | 0.23s    |
+| htcat      | no  | 0.16s    |
+| htcat      | no  | 0.17s    |
+| curl       | yes | 0.95s    |
+| curl       | yes | 0.97s    |
+| curl       | yes | 0.99s    |
+| htcat      | yes | 0.38s    |
+| htcat      | yes | 0.34s    |
+| htcat      | yes | 0.24s    |
