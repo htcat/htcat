@@ -2,6 +2,7 @@ package htcat
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,6 +32,11 @@ type HtCat struct {
 	httpFragGen
 }
 
+type HttpStatusError struct {
+	error
+	Status string
+}
+
 func (cat *HtCat) startup(parallelism int) {
 	req := http.Request{
 		Method:     "GET",
@@ -44,6 +50,17 @@ func (cat *HtCat) startup(parallelism int) {
 
 	resp, err := cat.cl.Do(&req)
 	if err != nil {
+		go cat.defrag.cancel(err)
+		return
+	}
+
+	// Check for non-200 OK response codes from the startup-GET.
+	if resp.Status != "200 OK" {
+		err = HttpStatusError{
+			error: fmt.Errorf(
+				"Expected HTTP Status 200, received: %q",
+				resp.Status),
+			Status: resp.Status}
 		go cat.defrag.cancel(err)
 		return
 	}
@@ -189,6 +206,18 @@ func (cat *HtCat) get() {
 		resp, err := cat.cl.Do(&req)
 		if err != nil {
 			cat.defrag.cancel(err)
+		}
+
+		// Check for non-206 Partial Content response codes from the
+		// range-GET.
+		if resp.Status != "206 Partial Content" {
+			err = HttpStatusError{
+				error: fmt.Errorf("Expected HTTP Status 206, "+
+					"received: %q",
+					resp.Status),
+				Status: resp.Status}
+			go cat.defrag.cancel(err)
+			return
 		}
 
 		er := newEagerReader(resp.Body, hf.size)
