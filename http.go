@@ -206,6 +206,7 @@ func (cat *HtCat) get() {
 		resp, err := cat.cl.Do(&req)
 		if err != nil {
 			cat.defrag.cancel(err)
+			return
 		}
 
 		// Check for non-206 Partial Content response codes from the
