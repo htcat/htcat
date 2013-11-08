@@ -112,7 +112,7 @@ func (cat *HtCat) startup(parallelism int) {
 	if cat.targetFragSize < 1*mB {
 		er := newEagerReader(resp.Body, cat.totalSize)
 		go noParallel(er)
-		go func() { er.WaitClosed() }()
+		go er.WaitClosed()
 		return
 	}
 
