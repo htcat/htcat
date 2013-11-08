@@ -6,7 +6,6 @@ import (
 )
 
 type httpFragGen struct {
-	*defrag
 	curPos    int64
 	totalSize int64
 

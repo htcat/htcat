@@ -21,15 +21,15 @@ const (
 )
 
 type HtCat struct {
-	defrag
-
+	io.WriterTo
+	d     defrag
 	u     *url.URL
 	cl    *http.Client
 	tasks chan *httpFrag
 
 	// Protect httpFragGen with a Mutex.
 	httpFragGenMu sync.Mutex
-	httpFragGen
+	hfg           httpFragGen
 }
 
 type HttpStatusError struct {
@@ -50,7 +50,7 @@ func (cat *HtCat) startup(parallelism int) {
 
 	resp, err := cat.cl.Do(&req)
 	if err != nil {
-		go cat.defrag.cancel(err)
+		go cat.d.cancel(err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (cat *HtCat) startup(parallelism int) {
 				"Expected HTTP Status 200, received: %q",
 				resp.Status),
 			Status: resp.Status}
-		go cat.defrag.cancel(err)
+		go cat.d.cancel(err)
 		return
 	}
 
@@ -71,10 +71,10 @@ func (cat *HtCat) startup(parallelism int) {
 	// receive no parallelism.  This procedure helps prepare the
 	// HtCat value for a one-HTTP-Request GET.
 	noParallel := func(wtc writerToCloser) {
-		f := cat.defrag.nextFragment()
-		cat.defrag.setLast(cat.defrag.lastAllocated())
+		f := cat.d.nextFragment()
+		cat.d.setLast(cat.d.lastAllocated())
 		f.contents = wtc
-		cat.register(f)
+		cat.d.register(f)
 	}
 
 	if l == "" {
@@ -94,23 +94,23 @@ func (cat *HtCat) startup(parallelism int) {
 	if err != nil {
 		// Invalid integer for Content-Length, defer reporting
 		// the error until a WriteTo call is made.
-		go cat.defrag.cancel(err)
+		go cat.d.cancel(err)
 		return
 	}
 
 	// Set up httpFrag generator state.
-	cat.totalSize = length
-	cat.targetFragSize = length / int64(parallelism)
-	if cat.targetFragSize > 20*mB {
-		cat.targetFragSize = 20 * mB
+	cat.hfg.totalSize = length
+	cat.hfg.targetFragSize = length / int64(parallelism)
+	if cat.hfg.targetFragSize > 20*mB {
+		cat.hfg.targetFragSize = 20 * mB
 	}
 
 	// Very small fragments are probably not worthwhile to start
 	// up new requests for, but it in this case it was possible to
 	// ascertain the size, so take advantage of that to start
 	// reading in the background as eagerly as possible.
-	if cat.targetFragSize < 1*mB {
-		er := newEagerReader(resp.Body, cat.totalSize)
+	if cat.hfg.targetFragSize < 1*mB {
+		er := newEagerReader(resp.Body, cat.hfg.totalSize)
 		go noParallel(er)
 		go er.WaitClosed()
 		return
@@ -134,7 +134,7 @@ func (cat *HtCat) startup(parallelism int) {
 			hf.size)
 
 		hf.fragment.contents = er
-		cat.register(hf.fragment)
+		cat.d.register(hf.fragment)
 		er.WaitClosed()
 
 		// Chain into being a regular worker, having finished
@@ -150,10 +150,10 @@ func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
 		cl: client,
 	}
 
-	cat.initDefrag()
+	cat.WriterTo = &cat.d
 	cat.startup(parallelism)
 
-	if cat.totalSize <= 0 {
+	if cat.hfg.totalSize <= 0 {
 		return &cat
 	}
 
@@ -162,6 +162,7 @@ func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
 	// "startup" starts one worker that is specially constructed
 	// to deal with the first request, so back off by one to
 	// prevent performing with too much parallelism.
+	cat.d.initDefrag()
 	for i := 1; i < parallelism; i += 1 {
 		go cat.get()
 	}
@@ -175,11 +176,11 @@ func (cat *HtCat) nextFragment() *httpFrag {
 
 	var hf *httpFrag
 
-	if cat.httpFragGen.hasNext() {
-		f := cat.defrag.nextFragment()
-		hf = cat.httpFragGen.nextFragment(f)
+	if cat.hfg.hasNext() {
+		f := cat.d.nextFragment()
+		hf = cat.hfg.nextFragment(f)
 	} else {
-		cat.defrag.setLast(cat.defrag.lastAllocated())
+		cat.d.setLast(cat.d.lastAllocated())
 	}
 
 	return hf
@@ -205,7 +206,7 @@ func (cat *HtCat) get() {
 
 		resp, err := cat.cl.Do(&req)
 		if err != nil {
-			cat.defrag.cancel(err)
+			cat.d.cancel(err)
 			return
 		}
 
@@ -217,13 +218,13 @@ func (cat *HtCat) get() {
 					"received: %q",
 					resp.Status),
 				Status: resp.Status}
-			go cat.defrag.cancel(err)
+			go cat.d.cancel(err)
 			return
 		}
 
 		er := newEagerReader(resp.Body, hf.size)
 		hf.fragment.contents = er
-		cat.register(hf.fragment)
+		cat.d.register(hf.fragment)
 		er.WaitClosed()
 	}
 }
