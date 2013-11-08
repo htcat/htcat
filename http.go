@@ -110,6 +110,7 @@ func (cat *HtCat) startup(parallelism int) {
 	// ascertain the size, so take advantage of that to start
 	// reading in the background as eagerly as possible.
 	if cat.hfg.targetFragSize < 1*mB {
+		cat.hfg.curPos = cat.hfg.totalSize
 		er := newEagerReader(resp.Body, cat.hfg.totalSize)
 		go noParallel(er)
 		go er.WaitClosed()
@@ -150,10 +151,11 @@ func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
 		cl: client,
 	}
 
+	cat.d.initDefrag()
 	cat.WriterTo = &cat.d
 	cat.startup(parallelism)
 
-	if cat.hfg.totalSize <= 0 {
+	if cat.hfg.curPos == cat.hfg.totalSize {
 		return &cat
 	}
 
@@ -162,7 +164,6 @@ func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
 	// "startup" starts one worker that is specially constructed
 	// to deal with the first request, so back off by one to
 	// prevent performing with too much parallelism.
-	cat.d.initDefrag()
 	for i := 1; i < parallelism; i += 1 {
 		go cat.get()
 	}
