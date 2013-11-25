@@ -211,12 +211,12 @@ func (cat *HtCat) get() {
 			return
 		}
 
-		// Check for non-206 Partial Content response codes from the
-		// range-GET.
-		if resp.Status != "206 Partial Content" {
+		// Check for an acceptable HTTP status code.
+		if !(resp.Status == "206 Partial Content" ||
+			resp.Status == "200 OK") {
 			err = HttpStatusError{
-				error: fmt.Errorf("Expected HTTP Status 206, "+
-					"received: %q",
+				error: fmt.Errorf("Expected HTTP Status "+
+					"206 or 200, received: %q",
 					resp.Status),
 				Status: resp.Status}
 			go cat.d.cancel(err)
