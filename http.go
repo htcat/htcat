@@ -22,10 +22,9 @@ const (
 
 type HtCat struct {
 	io.WriterTo
-	d     defrag
-	u     *url.URL
-	cl    *http.Client
-	tasks chan *httpFrag
+	d  defrag
+	u  *url.URL
+	cl *http.Client
 
 	// Protect httpFragGen with a Mutex.
 	httpFragGenMu sync.Mutex
