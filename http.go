@@ -142,7 +142,6 @@ func (cat *HtCat) startup(parallelism int) {
 		// the special start-up segment.
 		cat.get()
 	}()
-
 }
 
 func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
