@@ -33,18 +33,12 @@ func newEagerReader(r io.ReadCloser, bufSz int64) *eagerReader {
 }
 
 func (er *eagerReader) buffer() {
-	for {
+	for er.lastErr == nil {
 		var n int
 
 		er.bufMu.Lock()
 		n, er.lastErr = er.rc.Read(er.buf[er.end:])
 		er.end += n
-
-		if er.lastErr != nil {
-			er.more.Broadcast()
-			er.bufMu.Unlock()
-			return
-		}
 
 		er.more.Broadcast()
 		er.bufMu.Unlock()
