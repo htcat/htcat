@@ -53,6 +53,10 @@ type defrag struct {
 
 	// Bytes written out so far.
 	written int64
+
+	// Gets closed when WriteTo is complete and the defragmenter
+	// is shutting down.
+	done chan struct{}
 }
 
 func newDefrag() *defrag {
@@ -67,6 +71,7 @@ func (d *defrag) initDefrag() {
 	d.registerNotify = make(chan *fragment)
 	d.cancelNotify = make(chan error)
 	d.lastOrdinalNotify = make(chan int64)
+	d.done = make(chan struct{})
 }
 
 // Generate a new fragment.  These are numbered in the order they
@@ -90,6 +95,8 @@ func (d *defrag) cancel(err error) {
 
 // Write the contents of the defragmenter out to the io.Writer dst.
 func (d *defrag) WriteTo(dst io.Writer) (written int64, err error) {
+	defer close(d.done)
+
 	// Early exit if previously canceled.
 	if d.cancellation != nil {
 		return d.written, d.cancellation
@@ -150,7 +157,10 @@ func (d *defrag) WriteTo(dst io.Writer) (written int64, err error) {
 // Set the last work ordinal to be processed once this is known, which
 // can allow defrag.WriteTo to terminate.
 func (d *defrag) setLast(lastOrdinal int64) {
-	d.lastOrdinalNotify <- lastOrdinal
+	select {
+	case d.lastOrdinalNotify <- lastOrdinal:
+	case <-d.done:
+	}
 }
 
 // Get the last allocated fragment.
