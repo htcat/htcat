@@ -22,10 +22,9 @@ const (
 
 type HtCat struct {
 	io.WriterTo
-	d     defrag
-	u     *url.URL
-	cl    *http.Client
-	tasks chan *httpFrag
+	d  defrag
+	u  *url.URL
+	cl *http.Client
 
 	// Protect httpFragGen with a Mutex.
 	httpFragGenMu sync.Mutex
@@ -142,7 +141,6 @@ func (cat *HtCat) startup(parallelism int) {
 		// the special start-up segment.
 		cat.get()
 	}()
-
 }
 
 func New(client *http.Client, u *url.URL, parallelism int) *HtCat {
