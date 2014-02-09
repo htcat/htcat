@@ -27,7 +27,7 @@ This program depends on a Go 1.1 installation.  One can use a remote
 
 For correspondence of all sorts, write to <htcat@googlegroups.com>.
 Bugs can be filed at
-[htcat's Github Issues page](https://github.com/htcat/htcat/issues).
+[htcat's GitHub Issues page](https://github.com/htcat/htcat/issues).
 
 ## Approach ##
 
