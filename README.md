@@ -11,8 +11,9 @@ It is tuned (and only really useful) for faster interconnects:
     $ htcat http://test.com/file | pv -a > /dev/null
     [ 109MB/s]
 
-This is on a Gigabit network, between an AWS EC2 instance and S3.
-This represents 91% use of the theoretical maximum.
+This is on a gigabit network, between an AWS EC2 instance and S3.
+This represents 91% use of the theoretical maximum of gigabit (119.2
+MiB/s).
 
 ## Installation ##
 
