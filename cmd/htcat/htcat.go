@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"github.com/htcat/htcat"
 	"log"
 	"net/http"
@@ -25,12 +26,15 @@ func printUsage() {
 }
 
 func main() {
-	if len(os.Args) != 2 {
+	flag.Parse()
+	args := flag.Args()
+
+	if len(args) != 1 {
 		printUsage()
 		log.Fatalf("aborting: incorrect usage")
 	}
 
-	u, err := url.Parse(os.Args[1])
+	u, err := url.Parse(args[0])
 	if err != nil {
 		log.Fatalf("aborting: could not parse given URL: %v", err)
 	}
