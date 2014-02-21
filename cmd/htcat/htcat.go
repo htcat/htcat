@@ -11,6 +11,10 @@ import (
 	"runtime"
 )
 
+const version = "1.0.0"
+
+var onlyPrintVersion = flag.Bool("version", false, "print the htcat version")
+
 const (
 	_        = iota
 	KB int64 = 1 << (10 * iota)
@@ -28,6 +32,11 @@ func printUsage() {
 func main() {
 	flag.Parse()
 	args := flag.Args()
+
+	if *onlyPrintVersion {
+		os.Stdout.Write([]byte(version + "\n"))
+		os.Exit(0)
+	}
 
 	if len(args) != 1 {
 		printUsage()
