@@ -17,8 +17,8 @@ MiB/s).
 
 ## Installation ##
 
-This program depends on a Go 1.1 installation.  One can use `go get`
-to download and compile it from source:
+This program depends on Go 1.1 or later.  One can use `go get` to
+download and compile it from source:
 
     $ go get github.com/htcat/htcat/cmd/htcat
 
