@@ -99,7 +99,7 @@ func (cat *HtCat) startup(parallelism int) {
 
 	// Set up httpFrag generator state.
 	cat.hfg.totalSize = length
-	cat.hfg.targetFragSize = length / int64(parallelism)
+	cat.hfg.targetFragSize = 1 + ((length - 1) / int64(parallelism))
 	if cat.hfg.targetFragSize > 20*mB {
 		cat.hfg.targetFragSize = 20 * mB
 	}
