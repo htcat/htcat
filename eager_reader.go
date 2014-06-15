@@ -9,7 +9,6 @@ type eagerReader struct {
 	closeNotify chan struct{}
 	rc          io.ReadCloser
 
-	bufMu sync.Mutex
 	buf   []byte
 	more  *sync.Cond
 	begin int
@@ -25,7 +24,7 @@ func newEagerReader(r io.ReadCloser, bufSz int64) *eagerReader {
 		buf:         make([]byte, bufSz, bufSz),
 	}
 
-	er.more = sync.NewCond(&er.bufMu)
+	er.more = sync.NewCond(new(sync.Mutex))
 
 	go er.buffer()
 
@@ -33,29 +32,35 @@ func newEagerReader(r io.ReadCloser, bufSz int64) *eagerReader {
 }
 
 func (er *eagerReader) buffer() {
-	for er.lastErr == nil {
+	for er.lastErr == nil && er.end != len(er.buf) {
 		var n int
 
-		er.bufMu.Lock()
+		er.more.L.Lock()
 		n, er.lastErr = er.rc.Read(er.buf[er.end:])
 		er.end += n
 
 		er.more.Broadcast()
-		er.bufMu.Unlock()
+		er.more.L.Unlock()
 	}
 }
 
 func (er *eagerReader) writeOnce(dst io.Writer) (int64, error) {
-	er.bufMu.Lock()
-	defer er.bufMu.Unlock()
+	// Make one attempt at writing bytes from the buffer to the
+	// destination.
+	//
+	// It may be necessary to wait for more bytes to arrive.
+	er.more.L.Lock()
+	defer er.more.L.Unlock()
 
-	if er.begin == er.end && er.end == len(er.buf) {
-		return 0, er.lastErr
-	}
+	for er.begin == er.end {
+		if er.lastErr != nil {
+			return 0, er.lastErr
+		}
 
-	// Empty buffer without error: wait for another read
-	// to show up.
-	for er.end-er.begin == 0 && er.lastErr == nil {
+		if er.begin == len(er.buf) {
+			return 0, io.EOF
+		}
+
 		er.more.Wait()
 	}
 
