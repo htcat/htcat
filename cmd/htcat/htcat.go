@@ -11,7 +11,7 @@ import (
 	"runtime"
 )
 
-const version = "1.0.0"
+const version = "1.0.1"
 
 var onlyPrintVersion = flag.Bool("version", false, "print the htcat version")
 
