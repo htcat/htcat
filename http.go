@@ -104,13 +104,16 @@ func (cat *HtCat) startup(parallelism int) {
 		cat.hfg.targetFragSize = 20 * mB
 	}
 
+	// Initialize defrag's buffer pool.
+	cat.d.pool = newPool(parallelism, cat.hfg.targetFragSize)
+
 	// Very small fragments are probably not worthwhile to start
 	// up new requests for, but it in this case it was possible to
 	// ascertain the size, so take advantage of that to start
 	// reading in the background as eagerly as possible.
 	if cat.hfg.targetFragSize < 1*mB {
 		cat.hfg.curPos = cat.hfg.totalSize
-		er := newEagerReader(resp.Body, cat.hfg.totalSize)
+		er := newEagerReader(resp.Body, cat.hfg.totalSize, cat.d.pool)
 		go noParallel(er)
 		go er.WaitClosed()
 		return
@@ -131,7 +134,7 @@ func (cat *HtCat) startup(parallelism int) {
 				Reader: io.LimitReader(resp.Body, hf.size),
 				Closer: resp.Body,
 			},
-			hf.size)
+			hf.size, cat.d.pool)
 
 		hf.fragment.contents = er
 		cat.d.register(hf.fragment)
@@ -221,7 +224,7 @@ func (cat *HtCat) get() {
 			return
 		}
 
-		er := newEagerReader(resp.Body, hf.size)
+		er := newEagerReader(resp.Body, hf.size, cat.d.pool)
 		hf.fragment.contents = er
 		cat.d.register(hf.fragment)
 		er.WaitClosed()

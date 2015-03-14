@@ -15,13 +15,24 @@ type eagerReader struct {
 	end   int
 
 	lastErr error
+
+	// Pointer to defrag's pool so that eagerReader can release
+	// its contents when closed.
+	pool *pool
 }
 
-func newEagerReader(r io.ReadCloser, bufSz int64) *eagerReader {
+func newEagerReader(r io.ReadCloser, size int64, p *pool) *eagerReader {
+	var buf []byte
+	if p != nil {
+		buf = p.Get(size)
+	} else {
+		buf = make([]byte, size)
+	}
 	er := eagerReader{
 		closeNotify: make(chan struct{}),
 		rc:          r,
-		buf:         make([]byte, bufSz, bufSz),
+		buf:         buf,
+		pool:        p,
 	}
 
 	er.more = sync.NewCond(new(sync.Mutex))
@@ -96,9 +107,18 @@ func (er *eagerReader) WriteTo(dst io.Writer) (int64, error) {
 }
 
 func (er *eagerReader) Close() error {
+	er.free()
 	err := er.rc.Close()
 	er.closeNotify <- struct{}{}
 	return err
+}
+
+// free, puts the eagerReaders buffer into the buffer pool.
+func (er *eagerReader) free() {
+	if er.pool != nil {
+		er.pool.Put(er.buf)
+	}
+	er.buf = nil // dereference
 }
 
 func (er *eagerReader) WaitClosed() {

@@ -11,7 +11,7 @@ func TestEagerReaderRead(t *testing.T) {
 	reader, writer := io.Pipe()
 	payload := []byte("hello")
 
-	er := newEagerReader(ioutil.NopCloser(reader), int64(len(payload)))
+	er := newEagerReader(ioutil.NopCloser(reader), int64(len(payload)), nil)
 	done := make(chan struct{})
 
 	go func() {

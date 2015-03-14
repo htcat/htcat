@@ -57,6 +57,10 @@ type defrag struct {
 	// Gets closed when WriteTo is complete and the defragmenter
 	// is shutting down.
 	done chan struct{}
+
+	// pool of a buffers for use by eagerReader, after the completion
+	// of WriteTo() the pool is freed.
+	pool *pool
 }
 
 func newDefrag() *defrag {
@@ -96,6 +100,7 @@ func (d *defrag) cancel(err error) {
 // Write the contents of the defragmenter out to the io.Writer dst.
 func (d *defrag) WriteTo(dst io.Writer) (written int64, err error) {
 	defer close(d.done)
+	defer d.pool.Free()
 
 	// Early exit if previously canceled.
 	if d.cancellation != nil {
@@ -175,8 +180,7 @@ func (d *defrag) register(frag *fragment) {
 
 // Write a contiguous swathe of fragments, starting at the work
 // ordinal in 'start'.
-func (d *defrag) writeConsecutive(dst io.Writer, start *fragment) (
-	int64, error) {
+func (d *defrag) writeConsecutive(dst io.Writer, start *fragment) (int64, error) {
 	// Write out the explicitly passed fragment.
 	written, err := start.contents.WriteTo(dst)
 	if err != nil {
