@@ -54,7 +54,7 @@ func (cat *HtCat) startup(parallelism int) {
 	}
 
 	// Check for non-200 OK response codes from the startup-GET.
-	if resp.Status != "200 OK" {
+	if resp.StatusCode != 200 {
 		err = HttpStatusError{
 			error: fmt.Errorf(
 				"Expected HTTP Status 200, received: %q",
