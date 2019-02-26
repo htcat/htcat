@@ -93,7 +93,7 @@ func (d *defrag) cancel(err error) {
 	d.cancelNotify <- err
 }
 
-// Write the contents of the defragmenter out to the io.Writer dst.
+// WriteTo writes the contents of the defragmenter out to the io.Writer dst.
 func (d *defrag) WriteTo(dst io.Writer) (written int64, err error) {
 	defer close(d.done)
 
