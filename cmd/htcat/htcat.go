@@ -14,6 +14,8 @@ import (
 const version = "2.0.0-dev"
 
 var onlyPrintVersion = flag.Bool("version", false, "print the htcat version")
+var parallelism = flag.Int("parallelism", 5, "number of parallel HTTP requests")
+var maxFragmentSize = flag.Int64("max-fragment-size", 20, "maximum fragment size in MB")
 
 const (
 	_        = iota
